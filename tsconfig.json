@@ -1,0 +1,24 @@
+{
+    "compilerOptions": {
+      "target": "ES2015",
+      "module": "ESNext",
+      "lib": ["DOM", "DOM.Iterable", "ES6"],
+      "allowJs": true,
+      "skipLibCheck": true,
+      "esModuleInterop": true,
+      "allowSyntheticDefaultImports": true,
+      "strict": true,
+      "forceConsistentCasingInFileNames": true,
+      "moduleResolution": "node",
+      "resolveJsonModule": true,
+      "isolatedModules": true,
+      "noEmit": false,
+      "jsx": "react-jsx",
+      "jsxImportSource": "react",   // 👈 Add this
+      "declaration": true,
+      "outDir": "./dist"
+    },
+    "include": ["src"],
+    "exclude": ["node_modules", "dist", "**/*.css"]
+  }
+  

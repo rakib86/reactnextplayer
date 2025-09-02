@@ -1,0 +1,385 @@
+/* ReactVidPlayer.css */
+
+.react-vid-player {
+  position: relative;
+  width: 100%;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.react-vid-player video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: pointer;
+  background: #000;
+}
+
+.video-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top,
+      rgba(0, 0, 0, 0.8) 0%,
+      rgba(0, 0, 0, 0.6) 50%,
+      transparent 100%);
+  padding: 24px 20px 12px;
+  transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+}
+
+.video-controls.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.video-controls.visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: all;
+}
+
+/* Progress Bar */
+.progress-container {
+  margin-bottom: 12px;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.progress-bar {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 2px;
+  position: relative;
+  transition: height 0.2s ease;
+}
+
+.progress-container:hover .progress-bar {
+  height: 6px;
+}
+
+.progress-filled {
+  height: 100%;
+  background: linear-gradient(90deg, var(--player-color) 0%, var(--player-color-light) 100%);
+  border-radius: 2px;
+  transition: width 0.1s ease;
+  position: relative;
+}
+
+.progress-thumb {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  background: var(--player-color);
+  border: 2px solid #fff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: all 0.2s ease;
+  opacity: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.progress-container:hover .progress-thumb {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+/* Control Buttons */
+.control-buttons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.left-controls,
+.right-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.control-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  opacity: 0.9;
+  min-width: 36px;
+  min-height: 36px;
+}
+
+.control-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+.control-btn:active {
+  transform: scale(0.95);
+}
+
+.control-btn.active {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ff0000;
+}
+
+.play-pause {
+  background: rgba(255, 255, 255, 0.1);
+  margin-right: 8px;
+}
+
+.play-pause:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Volume Control */
+.volume-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 8px;
+  position: relative;
+}
+
+.volume-btn {
+  min-width: 32px;
+}
+
+.volume-slider {
+  width: 80px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.volume-slider:hover {
+  height: 6px;
+}
+
+/* Volume slider filled progress */
+.volume-slider::-webkit-slider-runnable-track {
+  background: linear-gradient(90deg, var(--player-color) 0%, var(--player-color-light) 100%);
+  height: 100%;
+  border-radius: 2px;
+  transition: all 0.2s ease;
+}
+
+.volume-slider::-moz-range-track {
+  background: rgba(255, 255, 255, 0.3);
+  height: 100%;
+  border-radius: 2px;
+}
+
+/* Custom volume slider with filled progress */
+.volume-slider-container {
+  position: relative;
+  width: 80px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: height 0.2s ease;
+}
+
+.volume-slider-container:hover {
+  height: 6px;
+}
+
+.volume-slider-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--player-color) 0%, var(--player-color-light) 100%);
+  border-radius: 2px;
+  transition: width 0.1s ease;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.volume-slider-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+
+/* Time Display */
+.time-display {
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  margin: 0 12px;
+  opacity: 0.9;
+  font-feature-settings: 'tnum';
+  letter-spacing: 0.5px;
+}
+
+/* Skip Buttons */
+.skip-btn {
+  opacity: 0.8;
+}
+
+.skip-btn:hover {
+  opacity: 1;
+}
+
+/* Fullscreen Button */
+.fullscreen-btn {
+  margin-left: 4px;
+}
+
+/* Fullscreen Mode */
+.react-vid-player.fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 9999;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.react-vid-player.fullscreen video {
+  object-fit: contain;
+}
+
+.react-vid-player.fullscreen .video-controls {
+  padding: 32px 24px 16px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .video-controls {
+    padding: 20px 16px 10px;
+  }
+
+  .control-btn {
+    padding: 6px;
+    min-width: 32px;
+    min-height: 32px;
+  }
+
+  .volume-control {
+    gap: 6px;
+    margin: 0 4px;
+  }
+
+  .volume-slider {
+    width: 60px;
+  }
+
+  .time-display {
+    font-size: 12px;
+    margin: 0 8px;
+  }
+
+  .left-controls,
+  .right-controls {
+    gap: 2px;
+  }
+
+  .progress-container {
+    padding: 6px 0;
+  }
+
+  .progress-bar {
+    height: 5px;
+  }
+
+  .progress-container:hover .progress-bar {
+    height: 7px;
+  }
+}
+
+@media (max-width: 480px) {
+  .video-controls {
+    padding: 16px 12px 8px;
+  }
+
+  .volume-slider {
+    width: 50px;
+  }
+
+  .time-display {
+    font-size: 11px;
+    margin: 0 6px;
+  }
+
+  .control-btn {
+    min-width: 28px;
+    min-height: 28px;
+  }
+}
+
+/* Dark theme enhancements */
+@media (prefers-color-scheme: dark) {
+  .react-vid-player {
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Focus states for accessibility */
+.control-btn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.volume-slider:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.progress-container:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* Big center overlay */
+.center-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  opacity: 0.85;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  z-index: 10;
+}
+
+.center-overlay:hover {
+  opacity: 1;
+}
+
+.center-overlay svg {
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.6));
+}
+
+/* Hide overlay when playing but fade briefly */
+.center-overlay.playing {
+  opacity: 0;
+  pointer-events: none;
+}
