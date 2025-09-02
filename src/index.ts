@@ -1,2 +1,2 @@
-export { default as ReactVidPlayer } from './ReactVidPlayer';
-export type { ReactVidPlayerProps } from './ReactVidPlayer';
+export { default as ReactNextPlayer } from "./ReactNextPlayer";
+export type { ReactNextPlayerProps } from "./ReactNextPlayer";

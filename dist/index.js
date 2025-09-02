@@ -1,1 +1,1 @@
-export { default as ReactVidPlayer } from './ReactVidPlayer';
+export { default as ReactNextPlayer } from "./ReactNextPlayer";

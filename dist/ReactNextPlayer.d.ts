@@ -1,5 +1,5 @@
 import React from "react";
-export interface ReactVidPlayerProps {
+export interface ReactNextPlayerProps {
     src: string;
     controls?: boolean;
     autoplay?: boolean;
@@ -16,5 +16,5 @@ export interface ReactVidPlayerProps {
     onTimeUpdate?: (currentTime: number) => void;
     onEnded?: () => void;
 }
-declare const ReactVidPlayer: React.FC<ReactVidPlayerProps>;
-export default ReactVidPlayer;
+declare const ReactNextPlayer: React.FC<ReactNextPlayerProps>;
+export default ReactNextPlayer;

@@ -1,14 +1,14 @@
 {
-  "name": "reactvidplay",
-  "version": "1.2.1",
+  "name": "reactnextplayer",
+  "version": "1.0.0",
   "type": "module",
   "description": "A good looking customizable React video player component",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "sideEffects": false,
   "files": [
-    "dist",
-    "src/ReactVidPlayer.css"
+    "dist"
   ],
   "scripts": {
     "build": "tsc",
@@ -32,12 +32,15 @@
     "@types/react-dom": "^19.1.9",
     "typescript": "^5.9.2"
   },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/rakib86/reactvidplay.git"
+    "url": "https://github.com/rakib86/reactnextplayer.git"
   },
-  "homepage": "https://github.com/rakib86/reactvidplay#readme",
+  "homepage": "https://github.com/rakib86/reactnextplayer#readme",
   "bugs": {
-    "url": "https://github.com/rakib86/reactvidplay/issues"
+    "url": "https://github.com/rakib86/reactnextplayer/issues"
   }
 }

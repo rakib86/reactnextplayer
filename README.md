@@ -1,82 +1,146 @@
-````markdown
-# React Vid Player
 
-A customizable React video player component with advanced controls, keyboard shortcuts, and modern UI.
+# React Video Player 🎬
 
-<p align="center">
-  <img src="/assets/player.png" alt="React Vid Player Preview" width="800" />
-</p>
+A modern, customizable React video player component with advanced controls, keyboard shortcuts, fullscreen, and picture-in-picture support.
 
-## Installation
+![ReactNextPlayer Demo](./assets/player.png)
+
+---
+
+## ✨ Features
+
+* 🎛️ Customizable player UI with color theming
+* ⏯️ Play / Pause with overlay and controls
+* ⏪ Skip backward & ⏩ skip forward (10s)
+* 🔊 Volume control with mute/unmute
+* ⌨️ Keyboard shortcuts (space, arrows, volume)
+* 🖼️ Picture-in-Picture support
+* 🖥️ Fullscreen toggle
+* 🕒 Progress bar with seek & scrub
+* 📱 Responsive design (mobile-friendly)
+* ♿ Accessible with keyboard navigation & ARIA labels
+
+---
+
+## 📦 Installation
 
 ```bash
-npm install reactvidplay
+npm install reactnextplayer
 ```
-````
 
-## Usage
+or with Yarn:
+
+```bash
+yarn add reactnextplayer
+```
+
+---
+
+## 🚀 Usage
 
 ```tsx
+"use client";
 import React from "react";
-import { ReactVidPlayer } from "reactvidplay";
-import "reactvidplay/dist/ReactVidPlayer.css"; // Import CSS
+import ReactNextPlayer from "reactnextplayer";
 
-function App() {
+export default function App() {
   return (
-    <div>
-      <ReactVidPlayer
-        src="https://example.com/video.mp4"
-        width="800px"
-        height="450px"
-        color="#ff0000"
+    <div style={{ maxWidth: "800px", margin: "0 auto" }}>
+      <ReactNextPlayer
+        src="/sample-video.mp4"
+        poster="/poster-image.jpg"
+        autoplay={false}
+        controls
+        color="#ff4757"
+        onPlay={() => console.log("Video started")}
+        onPause={() => console.log("Video paused")}
+        onEnded={() => console.log("Video ended")}
+        onTimeUpdate={(t) => console.log("Current time:", t)}
       />
     </div>
   );
 }
-
-export default App;
 ```
 
-## Features
+---
 
-- ✨ Custom video controls with modern design
-- ⌨️ Keyboard shortcuts (Space, Arrow keys)
-- 🔊 Volume control with slider
-- 📱 Picture-in-picture support
-- 🖥️ Fullscreen support
-- 🎨 Customizable theme color
-- 📱 Mobile responsive
+## ⚙️ Props
 
-## Keyboard Shortcuts
+| Prop          | Type               | Default      | Description                                 |
+| ------------- | ------------------ | ------------ | ------------------------------------------- |
+| `src`         | `string`           | **required** | Video source URL (mp4, webm, etc.)          |
+| `controls`    | `boolean`          | `true`       | Show/hide player controls                   |
+| `autoplay`    | `boolean`          | `false`      | Auto play video on load                     |
+| `muted`       | `boolean`          | `false`      | Start muted                                 |
+| `loop`        | `boolean`          | `false`      | Loop video when finished                    |
+| `contextMenu` | `boolean`          | `false`      | Allow right-click menu (disable by default) |
+| `poster`      | `string`           | `undefined`  | Poster image before video starts            |
+| `width`       | `string \| number` | `"100%"`     | Width of player                             |
+| `height`      | `string \| number` | `"auto"`     | Height of player                            |
+| `className`   | `string`           | `""`         | Custom CSS class                            |
+| `color`       | `string`           | `"#ff0000"`  | Primary color (progress, volume, etc.)      |
 
-- `Space` → Play/Pause
-- `←` → Skip backward 10s
-- `→` → Skip forward 10s
-- `↑` → Volume up
-- `↓` → Volume down
+---
 
-## Props
+## 🎯 Events (Callbacks)
 
-| Prop         | Type             | Default   | Description                     |
-| ------------ | ---------------- | --------- | ------------------------------- |
-| src          | string           | required  | Video source URL                |
-| controls     | boolean          | true      | Show custom controls            |
-| autoplay     | boolean          | false     | Auto play video                 |
-| muted        | boolean          | false     | Mute video initially            |
-| loop         | boolean          | false     | Loop video                      |
-| contextMenu  | boolean          | false     | Enable right-click context menu |
-| poster       | string           | -         | Poster image URL                |
-| width        | string \| number | '100%'    | Video width                     |
-| height       | string \| number | 'auto'    | Video height                    |
-| className    | string           | ''        | Additional CSS class            |
-| color        | string           | '#ff0000' | Theme color for controls        |
-| onPlay       | function         | -         | Called when video starts        |
-| onPause      | function         | -         | Called when video pauses        |
-| onTimeUpdate | function         | -         | Called on time update           |
-| onEnded      | function         | -         | Called when video ends          |
+| Event          | Arguments                | Description                     |
+| -------------- | ------------------------ | ------------------------------- |
+| `onPlay`       | `() => void`             | Fires when video starts playing |
+| `onPause`      | `() => void`             | Fires when video is paused      |
+| `onTimeUpdate` | `(time: number) => void` | Fires as video time updates     |
+| `onEnded`      | `() => void`             | Fires when video playback ends  |
 
-## License
+---
 
-MIT
+## 🎹 Keyboard Shortcuts
 
+| Key         | Action            |
+| ----------- | ----------------- |
+| `Space`     | Play / Pause      |
+| `←` (Left)  | Skip backward 10s |
+| `→` (Right) | Skip forward 10s  |
+| `↑` (Up)    | Volume up         |
+| `↓` (Down)  | Volume down       |
+
+---
+
+## 🎨 Customization
+
+The player uses CSS variables for theming. Pass a `color` prop to change the theme.
+
+```tsx
+<ReactNextPlayer
+  src="/video.mp4"
+  color="#1e90ff" // Blue themed player
+/>
 ```
+
+---
+
+## 📱 Responsive Design
+
+The player is responsive and adapts to different screen sizes:
+
+* **Desktop** → Full controls with hover animations
+* **Tablet** → Compact layout
+* **Mobile** → Simplified controls & smaller progress bar
+
+---
+
+## 🛠️ Roadmap
+
+* ✅ Customizable control layouts
+* ⏳ Subtitles / captions support
+* ⏳ Playlist & chapters
+* ⏳ HLS / DASH streaming support
+
+---
+
+## 📄 License
+
+MIT License © 2025 \Rakibur Rahaman 
+
+---
+
+Do you also want me to generate a **`package.json` template** (ready for NPM publish) alongside this README, so you can directly turn this into a real package?
