@@ -140,7 +140,3 @@ The player is responsive and adapts to different screen sizes:
 ## 📄 License
 
 MIT License © 2025 \Rakibur Rahaman 
-
----
-
-Do you also want me to generate a **`package.json` template** (ready for NPM publish) alongside this README, so you can directly turn this into a real package?
