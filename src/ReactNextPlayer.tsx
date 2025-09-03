@@ -38,6 +38,10 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
+  const playerRef = useRef<HTMLDivElement>(null);
+  const hideControlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastClickTimeRef = useRef<number>(0);
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -46,6 +50,7 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [isHovering, setIsHovering] = useState(false);
+  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
 
   const formatTime = (time: number): string => {
     const minutes = Math.floor(time / 60);
@@ -53,36 +58,76 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
+  // Clear hide controls timeout
+  const clearHideControlsTimeout = useCallback(() => {
+    if (hideControlsTimeoutRef.current) {
+      clearTimeout(hideControlsTimeoutRef.current);
+      hideControlsTimeoutRef.current = null;
+    }
+  }, []);
+
+  // Show controls and set hide timeout
+  const showControlsTemporarily = useCallback(() => {
+    setShowControls(true);
+    clearHideControlsTimeout();
+
+    // Only hide controls if playing and not hovering
+    if (isPlaying && !isHovering) {
+      hideControlsTimeoutRef.current = setTimeout(() => {
+        setShowControls(false);
+      }, 3000);
+    }
+  }, [isPlaying, isHovering, clearHideControlsTimeout]);
+
   const handlePlayPause = useCallback(() => {
     if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
         onPause?.();
       } else {
-        videoRef.current.play();
+        videoRef.current.play().catch(console.error);
         onPlay?.();
       }
-      setIsPlaying(!isPlaying);
     }
   }, [isPlaying, onPlay, onPause]);
 
-  const handleSkipBackward = () => {
+  const handleVideoClick = useCallback((e: React.MouseEvent) => {
+    const now = Date.now();
+    const timeSinceLastClick = now - lastClickTimeRef.current;
+    lastClickTimeRef.current = now;
+
+    // Double click detection (within 300ms)
+    if (timeSinceLastClick < 300) {
+      // Double click - toggle fullscreen
+      e.preventDefault();
+      toggleFullscreen();
+    } else {
+      // Single click - play/pause after a short delay to check for double click
+      setTimeout(() => {
+        if (Date.now() - lastClickTimeRef.current >= 250) {
+          handlePlayPause();
+        }
+      }, 250);
+    }
+  }, []);
+
+  const handleSkipBackward = useCallback(() => {
     if (videoRef.current) {
       videoRef.current.currentTime = Math.max(
         0,
         videoRef.current.currentTime - 10
       );
     }
-  };
+  }, []);
 
-  const handleSkipForward = () => {
+  const handleSkipForward = useCallback(() => {
     if (videoRef.current) {
       videoRef.current.currentTime = Math.min(
         duration,
         videoRef.current.currentTime + 10
       );
     }
-  };
+  }, [duration]);
 
   const handleTimeUpdate = useCallback(() => {
     if (videoRef.current) {
@@ -95,66 +140,81 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
   const handleLoadedMetadata = useCallback(() => {
     if (videoRef.current) {
       setDuration(videoRef.current.duration);
-    }
-  }, []);
+      setIsVideoLoaded(true);
 
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (videoRef.current && progressBarRef.current) {
-      const rect = progressBarRef.current.getBoundingClientRect();
-      const clickPosition = (e.clientX - rect.left) / rect.width;
-      const newTime = clickPosition * duration;
-      videoRef.current.currentTime = newTime;
-      setCurrentTime(newTime);
+      // Handle autoplay after metadata is loaded
+      if (autoplay) {
+        videoRef.current.play().catch(console.error);
+      }
     }
-  };
+  }, [autoplay]);
 
-  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newVolume = parseFloat(e.target.value);
-    setVolume(newVolume);
-    if (videoRef.current) {
-      videoRef.current.volume = newVolume;
-    }
-    setIsMuted(newVolume === 0);
-  };
+  const handleProgressClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (videoRef.current && progressBarRef.current) {
+        const rect = progressBarRef.current.getBoundingClientRect();
+        const clickPosition = (e.clientX - rect.left) / rect.width;
+        const newTime = clickPosition * duration;
+        videoRef.current.currentTime = newTime;
+        setCurrentTime(newTime);
+      }
+    },
+    [duration]
+  );
 
-  const toggleMute = () => {
+  const handleVolumeChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newVolume = parseFloat(e.target.value);
+      setVolume(newVolume);
+      if (videoRef.current) {
+        videoRef.current.volume = newVolume;
+      }
+      setIsMuted(newVolume === 0);
+    },
+    []
+  );
+
+  const toggleMute = useCallback(() => {
     if (videoRef.current) {
       const newMuted = !isMuted;
       setIsMuted(newMuted);
       videoRef.current.muted = newMuted;
     }
-  };
+  }, [isMuted]);
 
-  const handleVolumeUp = () => {
+  const handleVolumeUp = useCallback(() => {
     const newVolume = Math.min(1, volume + 0.1);
     setVolume(newVolume);
     if (videoRef.current) {
       videoRef.current.volume = newVolume;
     }
     setIsMuted(false);
-  };
+  }, [volume]);
 
-  const handleVolumeDown = () => {
+  const handleVolumeDown = useCallback(() => {
     const newVolume = Math.max(0, volume - 0.1);
     setVolume(newVolume);
     if (videoRef.current) {
       videoRef.current.volume = newVolume;
     }
     setIsMuted(newVolume === 0);
-  };
+  }, [volume]);
 
-  const toggleFullscreen = () => {
-    const playerElement = videoRef.current?.parentElement;
-    if (!document.fullscreenElement) {
-      playerElement?.requestFullscreen();
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen();
-      setIsFullscreen(false);
+  const toggleFullscreen = useCallback(() => {
+    if (!playerRef.current) return;
+
+    try {
+      if (!document.fullscreenElement) {
+        playerRef.current.requestFullscreen().catch(console.error);
+      } else {
+        document.exitFullscreen().catch(console.error);
+      }
+    } catch (error) {
+      console.error("Fullscreen error:", error);
     }
-  };
+  }, []);
 
-  const togglePictureInPicture = async () => {
+  const togglePictureInPicture = useCallback(async () => {
     if (videoRef.current) {
       try {
         if (document.pictureInPictureElement) {
@@ -163,20 +223,49 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
           await videoRef.current.requestPictureInPicture();
         }
       } catch (error) {
-        console.log("Picture-in-Picture not supported");
+        console.error("Picture-in-Picture not supported", error);
       }
     }
-  };
+  }, []);
 
-  const handleEnded = () => {
+  const handleEnded = useCallback(() => {
     setIsPlaying(false);
     onEnded?.();
-  };
+  }, [onEnded]);
+
+  const handleVideoPlay = useCallback(() => {
+    setIsPlaying(true);
+    onPlay?.();
+  }, [onPlay]);
+
+  const handleVideoPause = useCallback(() => {
+    setIsPlaying(false);
+    onPause?.();
+  }, [onPause]);
+
+  // Handle mouse enter/leave
+  const handleMouseEnter = useCallback(() => {
+    setIsHovering(true);
+    setShowControls(true);
+    clearHideControlsTimeout();
+  }, [clearHideControlsTimeout]);
+
+  const handleMouseLeave = useCallback(() => {
+    setIsHovering(false);
+    if (isPlaying) {
+      hideControlsTimeoutRef.current = setTimeout(() => {
+        setShowControls(false);
+      }, 1000); // Shorter delay when leaving
+    }
+  }, [isPlaying]);
+
+  const handleMouseMove = useCallback(() => {
+    showControlsTemporarily();
+  }, [showControlsTemporarily]);
 
   // Keyboard event handler
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      // Only handle keyboard events when the video player is focused or when the document is focused
       const target = e.target as Element;
       if (e.target !== document.body && !target?.closest(".react-vid-player")) {
         return;
@@ -184,32 +273,49 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
 
       switch (e.code) {
         case "Space":
-          e.preventDefault(); // Prevent page scroll
+          e.preventDefault();
           handlePlayPause();
           break;
         case "ArrowLeft":
-          e.preventDefault(); // Prevent page navigation
+          e.preventDefault();
           handleSkipBackward();
           break;
         case "ArrowRight":
-          e.preventDefault(); // Prevent page navigation
+          e.preventDefault();
           handleSkipForward();
           break;
         case "ArrowUp":
-          e.preventDefault(); // Prevent page scroll
+          e.preventDefault();
           handleVolumeUp();
           break;
         case "ArrowDown":
-          e.preventDefault(); // Prevent page scroll
+          e.preventDefault();
           handleVolumeDown();
+          break;
+        case "KeyF":
+          e.preventDefault();
+          toggleFullscreen();
+          break;
+        case "KeyM":
+          e.preventDefault();
+          toggleMute();
           break;
         default:
           break;
       }
     },
-    [handlePlayPause, handleVolumeUp, handleVolumeDown]
+    [
+      handlePlayPause,
+      handleSkipBackward,
+      handleSkipForward,
+      handleVolumeUp,
+      handleVolumeDown,
+      toggleFullscreen,
+      toggleMute,
+    ]
   );
 
+  // Fullscreen change handler
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -220,7 +326,7 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
-  // Add keyboard event listener
+  // Keyboard event listener
   useEffect(() => {
     document.addEventListener("keydown", handleKeyDown);
     return () => {
@@ -228,28 +334,36 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
     };
   }, [handleKeyDown]);
 
+  // Control visibility effect
   useEffect(() => {
-    let hideControlsTimeout: NodeJS.Timeout;
-
-    const handleMouseMove = () => {
+    if (isHovering) {
       setShowControls(true);
-      clearTimeout(hideControlsTimeout);
-      hideControlsTimeout = setTimeout(() => {
-        if (isPlaying && !isHovering) {
-          setShowControls(false);
-        }
-      }, 3000);
-    };
-
-    const videoElement = videoRef.current;
-    if (videoElement) {
-      videoElement.addEventListener("mousemove", handleMouseMove);
-      return () => {
-        videoElement.removeEventListener("mousemove", handleMouseMove);
-        clearTimeout(hideControlsTimeout);
-      };
+      clearHideControlsTimeout();
+    } else if (isPlaying) {
+      hideControlsTimeoutRef.current = setTimeout(() => {
+        setShowControls(false);
+      }, 1000);
+    } else {
+      setShowControls(true);
     }
-  }, [isPlaying, isHovering]);
+
+    return clearHideControlsTimeout;
+  }, [isHovering, isPlaying, clearHideControlsTimeout]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      clearHideControlsTimeout();
+    };
+  }, [clearHideControlsTimeout]);
+
+  // Initialize video properties
+  useEffect(() => {
+    if (videoRef.current && isVideoLoaded) {
+      videoRef.current.volume = volume;
+      videoRef.current.muted = isMuted;
+    }
+  }, [isVideoLoaded, volume, isMuted]);
 
   const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
 
@@ -265,6 +379,7 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
             overflow: hidden;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            user-select: none;
           }
 
           .react-vid-player video {
@@ -273,6 +388,7 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
             display: block;
             cursor: pointer;
             background: #000;
+            outline: none;
           }
 
           .video-controls {
@@ -286,6 +402,7 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
                 transparent 100%);
             padding: 24px 20px 12px;
             transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+            z-index: 10;
           }
 
           .video-controls.hidden {
@@ -389,7 +506,7 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
 
           .control-btn.active {
             background: rgba(255, 255, 255, 0.2);
-            color: #ff0000;
+            color: var(--player-color);
           }
 
           .play-pause {
@@ -495,6 +612,33 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
             padding: 32px 24px 16px;
           }
 
+          /* Center overlay */
+          .center-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            opacity: 0;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+            z-index: 5;
+            pointer-events: none;
+          }
+
+          .center-overlay.visible {
+            opacity: 0.85;
+            pointer-events: all;
+          }
+
+          .center-overlay:hover {
+            opacity: 1;
+          }
+
+          .center-overlay svg {
+            filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.6));
+          }
+
           /* Responsive Design */
           @media (max-width: 768px) {
             .video-controls {
@@ -559,13 +703,6 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
             }
           }
 
-          /* Dark theme enhancements */
-          @media (prefers-color-scheme: dark) {
-            .react-vid-player {
-              box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
-            }
-          }
-
           /* Focus states for accessibility */
           .control-btn:focus-visible {
             outline: 2px solid #fff;
@@ -582,36 +719,17 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
             outline-offset: 2px;
           }
 
-          /* Big center overlay */
-          .center-overlay {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: white;
-            opacity: 0.85;
-            cursor: pointer;
-            transition: opacity 0.2s ease;
-            z-index: 10;
-          }
-
-          .center-overlay:hover {
-            opacity: 1;
-          }
-
-          .center-overlay svg {
-            filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.6));
-          }
-
-          /* Hide overlay when playing but fade briefly */
-          .center-overlay.playing {
-            opacity: 0;
-            pointer-events: none;
+          /* Dark theme enhancements */
+          @media (prefers-color-scheme: dark) {
+            .react-vid-player {
+              box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+            }
           }
         `}
       </style>
-      
+
       <div
+        ref={playerRef}
         className={`react-vid-player ${className} ${
           isFullscreen ? "fullscreen" : ""
         }`}
@@ -620,70 +738,68 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
             width,
             height,
             "--player-color": color,
-            "--player-color-light": color + "44", // Adding transparency for lighter variants
+            "--player-color-light": color + "44",
           } as React.CSSProperties
         }
-        onMouseEnter={() => setIsHovering(true)}
-        onMouseLeave={() => setIsHovering(false)}
-        tabIndex={0} // Make the player focusable for keyboard events
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onMouseMove={handleMouseMove}
+        tabIndex={0}
       >
         <video
           ref={videoRef}
           src={src}
           onContextMenu={!contextMenu ? (e) => e.preventDefault() : undefined}
-          onMouseEnter={() => setIsHovering(true)}
-          onMouseLeave={() => setIsHovering(false)}
           poster={poster}
           autoPlay={autoplay}
           muted={muted}
           loop={loop}
-          onPlay={() => setIsPlaying(true)}
-          onPause={() => setIsPlaying(false)}
+          onPlay={handleVideoPlay}
+          onPause={handleVideoPause}
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
           onEnded={handleEnded}
-          onClick={handlePlayPause}
+          onClick={handleVideoClick}
+          playsInline
         />
 
-        {/* Big center play/pause overlay */}
+        {/* Center play/pause overlay - only show when paused or on hover */}
         <div
-          className={`center-overlay ${isPlaying ? "playing" : "paused"}`}
+          className={`center-overlay ${
+            !isPlaying || (showControls && isHovering) ? "visible" : ""
+          }`}
           onClick={handlePlayPause}
         >
           {isPlaying ? (
-            <>
-              <svg
-                height="60"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                width="60"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <g id="Layer_2" data-name="Layer 2">
-                  <rect height="20" rx="2.5" width="5" x="4.5" y="2" />
-                  <rect height="20" rx="2.5" width="5" x="14.5" y="2" />
-                </g>
-              </svg>
-            </>
+            <svg
+              height="60"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              width="60"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <g id="Layer_2" data-name="Layer 2">
+                <rect height="20" rx="2.5" width="5" x="4.5" y="2" />
+                <rect height="20" rx="2.5" width="5" x="14.5" y="2" />
+              </g>
+            </svg>
           ) : (
-            <>
-              <svg
-                height="60"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                width="60"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path d="m11.4626 4.97504 4.5466 3.03112c2.0031 1.33537 3.0046 2.00304 3.3536 2.84464.3052.7358.3052 1.5626 0 2.2984-.349.8416-1.3505 1.5093-3.3536 2.8446l-4.5466 3.0312h-.0001c-2.42412 1.6161-3.6362 2.4241-4.64131 2.3641-.87562-.0523-1.68451-.4852-2.21372-1.1847-.60747-.803-.60747-2.2598-.60747-5.1733v-6.06222c0-2.91349 0-4.37023.60747-5.17325.52921-.69956 1.3381-1.13246 2.21372-1.18475 1.00512-.06001 2.2172.74805 4.64141 2.36416z" />
-              </svg>
-            </>
+            <svg
+              height="60"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              width="60"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="m11.4626 4.97504 4.5466 3.03112c2.0031 1.33537 3.0046 2.00304 3.3536 2.84464.3052.7358.3052 1.5626 0 2.2984-.349.8416-1.3505 1.5093-3.3536 2.8446l-4.5466 3.0312h-.0001c-2.42412 1.6161-3.6362 2.4241-4.64131 2.3641-.87562-.0523-1.68451-.4852-2.21372-1.1847-.60747-.803-.60747-2.2598-.60747-5.1733v-6.06222c0-2.91349 0-4.37023.60747-5.17325.52921-.69956 1.3381-1.13246 2.21372-1.18475 1.00512-.06001 2.2172.74805 4.64141 2.36416z" />
+            </svg>
           )}
         </div>
 
         {controls && (
           <div
             className={`video-controls ${
-              showControls || isHovering ? "visible" : "hidden"
+              showControls || !isPlaying ? "visible" : "hidden"
             }`}
           >
             <div className="progress-container" onClick={handleProgressClick}>
@@ -707,32 +823,28 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
                   aria-label={isPlaying ? "Pause" : "Play"}
                 >
                   {isPlaying ? (
-                    <>
-                      <svg
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        width="18"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <g id="Layer_2" data-name="Layer 2">
-                          <rect height="20" rx="2.5" width="5" x="4.5" y="2" />
-                          <rect height="20" rx="2.5" width="5" x="14.5" y="2" />
-                        </g>
-                      </svg>
-                    </>
+                    <svg
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      width="18"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <g id="Layer_2" data-name="Layer 2">
+                        <rect height="20" rx="2.5" width="5" x="4.5" y="2" />
+                        <rect height="20" rx="2.5" width="5" x="14.5" y="2" />
+                      </g>
+                    </svg>
                   ) : (
-                    <>
-                      <svg
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        width="18"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path d="m11.4626 4.97504 4.5466 3.03112c2.0031 1.33537 3.0046 2.00304 3.3536 2.84464.3052.7358.3052 1.5626 0 2.2984-.349.8416-1.3505 1.5093-3.3536 2.8446l-4.5466 3.0312h-.0001c-2.42412 1.6161-3.6362 2.4241-4.64131 2.3641-.87562-.0523-1.68451-.4852-2.21372-1.1847-.60747-.803-.60747-2.2598-.60747-5.1733v-6.06222c0-2.91349 0-4.37023.60747-5.17325.52921-.69956 1.3381-1.13246 2.21372-1.18475 1.00512-.06001 2.2172.74805 4.64141 2.36416z" />
-                      </svg>
-                    </>
+                    <svg
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      width="18"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path d="m11.4626 4.97504 4.5466 3.03112c2.0031 1.33537 3.0046 2.00304 3.3536 2.84464.3052.7358.3052 1.5626 0 2.2984-.349.8416-1.3505 1.5093-3.3536 2.8446l-4.5466 3.0312h-.0001c-2.42412 1.6161-3.6362 2.4241-4.64131 2.3641-.87562-.0523-1.68451-.4852-2.21372-1.1847-.60747-.803-.60747-2.2598-.60747-5.1733v-6.06222c0-2.91349 0-4.37023.60747-5.17325.52921-.69956 1.3381-1.13246 2.21372-1.18475 1.00512-.06001 2.2172.74805 4.64141 2.36416z" />
+                    </svg>
                   )}
                 </button>
 
@@ -746,16 +858,14 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
                     height="30"
                     viewBox="0 0 512 512"
                     width="30"
-                    onClick={handleSkipBackward}
                     fill="currentColor"
                     xmlns="http://www.w3.org/2000/svg"
                     data-name="Layer 1"
                   >
-                    {" "}
-                    <path d="m421.938 90.068c-77.266-77.261-196.126-88.942-286.495-34.968l1.557-8.657a21.337 21.337 0 0 0 -42-7.552l-11.385 63.286a21.342 21.342 0 0 0 14.25 24.016l55.3 18.437a21.335 21.335 0 0 0 13.5-40.479l-19.12-6.374c74.69-51.138 178.078-43.679 244.224 22.457 74.854 74.86 74.854 196.672 0 271.532-74.875 74.864-196.667 74.864-271.542 0a192.586 192.586 0 0 1 -44.125-203 21.334 21.334 0 1 0 -39.979-14.907 234.734 234.734 0 0 0 385.815 248.073c91.489-91.494 91.489-240.37 0-331.864z" />{" "}
-                    <path d="m192 362.667a21.334 21.334 0 0 0 21.333-21.334v-149.333a21.336 21.336 0 0 0 -32.312-18.292l-53.333 32a21.334 21.334 0 0 0 21.958 36.584l21.021-12.615v111.656a21.334 21.334 0 0 0 21.333 21.334z" />{" "}
-                    <path d="m309.333 362.667c41.865 0 74.667-42.167 74.667-96s-32.8-96-74.667-96-74.666 42.166-74.666 96 32.802 96 74.666 96zm0-149.334c15.136 0 32 21.9 32 53.334s-16.864 53.333-32 53.333-32-21.9-32-53.333 16.867-53.334 32-53.334z" />{" "}
-                  </svg>{" "}
+                    <path d="m421.938 90.068c-77.266-77.261-196.126-88.942-286.495-34.968l1.557-8.657a21.337 21.337 0 0 0 -42-7.552l-11.385 63.286a21.342 21.342 0 0 0 14.25 24.016l55.3 18.437a21.335 21.335 0 0 0 13.5-40.479l-19.12-6.374c74.69-51.138 178.078-43.679 244.224 22.457 74.854 74.86 74.854 196.672 0 271.532-74.875 74.864-196.667 74.864-271.542 0a192.586 192.586 0 0 1 -44.125-203 21.334 21.334 0 1 0 -39.979-14.907 234.734 234.734 0 0 0 385.815 248.073c91.489-91.494 91.489-240.37 0-331.864z" />
+                    <path d="m192 362.667a21.334 21.334 0 0 0 21.333-21.334v-149.333a21.336 21.336 0 0 0 -32.312-18.292l-53.333 32a21.334 21.334 0 0 0 21.958 36.584l21.021-12.615v111.656a21.334 21.334 0 0 0 21.333 21.334z" />
+                    <path d="m309.333 362.667c41.865 0 74.667-42.167 74.667-96s-32.8-96-74.667-96-74.666 42.166-74.666 96 32.802 96 74.666 96zm0-149.334c15.136 0 32 21.9 32 53.334s-16.864 53.333-32 53.333-32-21.9-32-53.333 16.867-53.334 32-53.334z" />
+                  </svg>
                 </button>
 
                 <button
@@ -767,7 +877,6 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
                     id="Layer_1"
                     height="30"
                     viewBox="0 0 512 512"
-                    onClick={handleSkipForward}
                     fill="currentColor"
                     width="30"
                     xmlns="http://www.w3.org/2000/svg"
@@ -776,7 +885,7 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
                     <path d="m475.875 173.859a21.334 21.334 0 1 0 -39.975 14.907 192.586 192.586 0 0 1 -44.125 203c-74.875 74.854-196.688 74.854-271.542 0s-74.854-196.672 0-271.532c66.012-66.015 169.159-73.586 244.142-22.434l-19.042 6.347a21.335 21.335 0 1 0 13.5 40.479l55.3-18.437a21.342 21.342 0 0 0 14.250-24.016l-11.383-63.282a21.337 21.337 0 0 0 -42 7.552l1.534 8.526c-90.141-53.884-209.142-42.244-286.472 35.099-91.489 91.494-91.489 240.37 0 331.864a234.7 234.7 0 0 0 385.813-248.073z" />
                     <path d="m192 362.667a21.334 21.334 0 0 0 21.333-21.334v-149.333a21.336 21.336 0 0 0 -32.312-18.292l-53.333 32a21.334 21.334 0 0 0 21.958 36.584l21.021-12.615v111.656a21.334 21.334 0 0 0 21.333 21.334z" />
                     <path d="m309.333 170.667c-41.864 0-74.666 42.166-74.666 96s32.8 96 74.666 96 74.667-42.167 74.667-96-32.8-96-74.667-96zm0 149.333c-15.135 0-32-21.9-32-53.333s16.865-53.334 32-53.334 32 21.9 32 53.334-16.864 53.333-32 53.333z" />
-                  </svg>{" "}
+                  </svg>
                 </button>
 
                 <div className="volume-control">
@@ -786,35 +895,31 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
                     aria-label={isMuted ? "Unmute" : "Mute"}
                   >
                     {isMuted ? (
-                      <>
-                        <svg
-                          id="Layer_1"
-                          height="18"
-                          viewBox="0 0 512 512"
-                          width="18"
-                          fill="currentColor"
-                          xmlns="http://www.w3.org/2000/svg"
-                          data-name="Layer 1"
-                        >
-                          <path d="m61.261 370.663h56.947a17.708 17.708 0 0 1 11.351 3.7l105.832 77.2a60.7 60.7 0 0 0 35.909 11.945 61.53 61.53 0 0 0 27.949-6.829 60.21 60.21 0 0 0 33.5-54.611v-292.136a61.261 61.261 0 0 0 -97.363-49.494l-105.832 77.2a17.708 17.708 0 0 1 -11.351 3.7h-56.942a61.33 61.33 0 0 0 -61.261 61.262v106.8a61.33 61.33 0 0 0 61.261 61.263zm93.05-199.095 105.83-77.2a19.261 19.261 0 0 1 30.613 15.561v292.139a19.261 19.261 0 0 1 -30.612 15.562l-105.832-77.2a64.512 64.512 0 0 0 -8.189-5.1v-158.659a64.512 64.512 0 0 0 8.189-5.1zm-112.311 31.032a19.284 19.284 0 0 1 19.261-19.262h42.860v145.325h-42.860a19.284 19.284 0 0 1 -19.261-19.263zm463.849 13.777-39.624 39.623 39.624 39.624a21 21 0 1 1 -29.7 29.7l-39.623-39.624-39.626 39.623a21 21 0 0 1 -29.7-29.7l39.627-39.623-39.627-39.624a21 21 0 0 1 29.7-29.7l39.626 39.624 39.625-39.624a21 21 0 0 1 29.7 29.7z" />
-                        </svg>
-                      </>
+                      <svg
+                        id="Layer_1"
+                        height="18"
+                        viewBox="0 0 512 512"
+                        width="18"
+                        fill="currentColor"
+                        xmlns="http://www.w3.org/2000/svg"
+                        data-name="Layer 1"
+                      >
+                        <path d="m61.261 370.663h56.947a17.708 17.708 0 0 1 11.351 3.7l105.832 77.2a60.7 60.7 0 0 0 35.909 11.945 61.53 61.53 0 0 0 27.949-6.829 60.21 60.21 0 0 0 33.5-54.611v-292.136a61.261 61.261 0 0 0 -97.363-49.494l-105.832 77.2a17.708 17.708 0 0 1 -11.351 3.7h-56.942a61.33 61.33 0 0 0 -61.261 61.262v106.8a61.33 61.33 0 0 0 61.261 61.263zm93.05-199.095 105.83-77.2a19.261 19.261 0 0 1 30.613 15.561v292.139a19.261 19.261 0 0 1 -30.612 15.562l-105.832-77.2a64.512 64.512 0 0 0 -8.189-5.1v-158.659a64.512 64.512 0 0 0 8.189-5.1zm-112.311 31.032a19.284 19.284 0 0 1 19.261-19.262h42.86v145.325h-42.86a19.284 19.284 0 0 1 -19.261-19.263zm463.849 13.777-39.624 39.623 39.624 39.624a21 21 0 1 1 -29.7 29.7l-39.623-39.624-39.626 39.623a21 21 0 0 1 -29.7-29.7l39.627-39.623-39.627-39.624a21 21 0 0 1 29.7-29.7l39.626 39.624 39.625-39.624a21 21 0 0 1 29.7 29.7z" />
+                      </svg>
                     ) : (
-                      <>
-                        <svg
-                          id="Capa_1"
-                          height="18"
-                          viewBox="0 0 497.003 497.003"
-                          width="18"
-                          fill="currentColor"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <g>
-                            <path d="m381.183 402.127c-7.239 0-13.972-4.59-16.368-11.835-2.987-9.037 1.919-18.792 10.956-21.774 51.895-17.137 86.762-65.367 86.762-120.02 0-53.906-34.281-101.94-85.302-119.52-8.997-3.102-13.777-12.909-10.674-21.912 3.097-8.997 12.886-13.782 21.906-10.68 64.919 22.371 108.541 83.498 108.541 152.111 0 69.549-44.375 130.941-110.414 152.755-1.793.594-3.62.875-5.407.875z" />
-                            <path d="m410.856 248.499c0-41.077-33.333-74.496-74.364-74.668v-123.018c0-19.148-10.002-36.188-26.1-44.467-14.77-7.606-31.747-6.308-45.409 3.459l-162.481 116.4h-56.542c-25.341 0-45.96 20.619-45.96 45.96v152.669c0 25.341 20.619 45.96 45.96 45.96h56.543l162.493 116.417c7.756 5.544 16.58 8.353 25.468 8.353 6.756 0 13.547-1.626 19.93-4.906 16.103-8.279 26.1-25.318 26.1-44.467v-123.023c41.024-.173 74.362-33.597 74.362-74.669zm-320.033 87.825h-44.863c-6.337 0-11.49-5.153-11.49-11.49v-152.669c0-6.337 5.153-11.49 11.49-11.49h44.863zm211.193 109.862c0 7.382-3.82 11.978-7.394 13.817-3.263 1.66-6.48 1.385-9.571-.827l-159.752-114.453v-192.447l159.741-114.441c3.12-2.218 6.337-2.505 9.588-.839 3.573 1.838 7.394 6.434 7.394 13.817v395.373zm34.471-157.489v-80.396c22.026.172 39.894 18.131 39.894 40.198.005 22.067-17.868 40.026-39.894 40.198z" />
-                          </g>
-                        </svg>
-                      </>
+                      <svg
+                        id="Capa_1"
+                        height="18"
+                        viewBox="0 0 497.003 497.003"
+                        width="18"
+                        fill="currentColor"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <g>
+                          <path d="m381.183 402.127c-7.239 0-13.972-4.59-16.368-11.835-2.987-9.037 1.919-18.792 10.956-21.774 51.895-17.137 86.762-65.367 86.762-120.02 0-53.906-34.281-101.94-85.302-119.52-8.997-3.102-13.777-12.909-10.674-21.912 3.097-8.997 12.886-13.782 21.906-10.68 64.919 22.371 108.541 83.498 108.541 152.111 0 69.549-44.375 130.941-110.414 152.755-1.793.594-3.62.875-5.407.875z" />
+                          <path d="m410.856 248.499c0-41.077-33.333-74.496-74.364-74.668v-123.018c0-19.148-10.002-36.188-26.1-44.467-14.77-7.606-31.747-6.308-45.409 3.459l-162.481 116.4h-56.542c-25.341 0-45.96 20.619-45.96 45.96v152.669c0 25.341 20.619 45.96 45.96 45.96h56.543l162.493 116.417c7.756 5.544 16.58 8.353 25.468 8.353 6.756 0 13.547-1.626 19.93-4.906 16.103-8.279 26.1-25.318 26.1-44.467v-123.023c41.024-.173 74.362-33.597 74.362-74.669zm-320.033 87.825h-44.863c-6.337 0-11.49-5.153-11.49-11.49v-152.669c0-6.337 5.153-11.49 11.49-11.49h44.863zm211.193 109.862c0 7.382-3.82 11.978-7.394 13.817-3.263 1.66-6.48 1.385-9.571-.827l-159.752-114.453v-192.447l159.741-114.441c3.12-2.218 6.337-2.505 9.588-.839 3.573 1.838 7.394 6.434 7.394 13.817v395.373zm34.471-157.489v-80.396c22.026.172 39.894 18.131 39.894 40.198.005 22.067-17.868 40.026-39.894 40.198z" />
+                        </g>
+                      </svg>
                     )}
                   </button>
 
@@ -867,31 +972,27 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
                   }
                 >
                   {isFullscreen ? (
-                    <>
-                      <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-                        <g fill="currentColor">
-                          <path d="m29 19.5h-6a3.5 3.5 0 0 0 -3.5 3.5v6a1.5 1.5 0 0 0 3 0v-6a.5.5 0 0 1 .5-.5h6a1.5 1.5 0 0 0 0-3z" />
-                          <path d="m23 9.5a.5.5 0 0 1 -.5-.5v-6a1.5 1.5 0 0 0 -3 0v6a3.5 3.5 0 0 0 3.5 3.5h6a1.5 1.5 0 0 0 0-3z" />
-                          <path d="m9 22.5a.5.5 0 0 1 .5.5v6a1.5 1.5 0 0 0 3 0v-6a3.5 3.5 0 0 0 -3.5-3.5h-6a1.5 1.5 0 0 0 0 3z" />
-                          <path d="m3 12.5h6a3.5 3.5 0 0 0 3.5-3.5v-6a1.5 1.5 0 0 0 -3 0v6a.5.5 0 0 1 -.5.5h-6a1.5 1.5 0 0 0 0 3z" />
-                        </g>
-                      </svg>
-                    </>
+                    <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                      <g fill="currentColor">
+                        <path d="m29 19.5h-6a3.5 3.5 0 0 0 -3.5 3.5v6a1.5 1.5 0 0 0 3 0v-6a.5.5 0 0 1 .5-.5h6a1.5 1.5 0 0 0 0-3z" />
+                        <path d="m23 9.5a.5.5 0 0 1 -.5-.5v-6a1.5 1.5 0 0 0 -3 0v6a3.5 3.5 0 0 0 3.5 3.5h6a1.5 1.5 0 0 0 0-3z" />
+                        <path d="m9 22.5a.5.5 0 0 1 .5.5v6a1.5 1.5 0 0 0 3 0v-6a3.5 3.5 0 0 0 -3.5-3.5h-6a1.5 1.5 0 0 0 0 3z" />
+                        <path d="m3 12.5h6a3.5 3.5 0 0 0 3.5-3.5v-6a1.5 1.5 0 0 0 -3 0v6a.5.5 0 0 1 -.5.5h-6a1.5 1.5 0 0 0 0 3z" />
+                      </g>
+                    </svg>
                   ) : (
-                    <>
-                      <svg
-                        height="20"
-                        viewBox="0 0 24 24"
-                        width="20"
-                        fill="currentColor"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          id="expand"
-                          d="m22 4.5v3.5a1 1 0 0 1 -2 0v-3.5c0-.449-.052-.5-.5-.5h-3.5a1 1 0 0 1 0-2h3.5a2.32 2.32 0 0 1 2.5 2.5zm-14-2.5h-3.5a2.32 2.32 0 0 0 -2.5 2.5v3.5a1 1 0 0 0 2 0v-3.5c0-.449.052-.5.5-.5h3.5a1 1 0 0 0 0-2zm0 18h-3.5c-.448 0-.5-.051-.5-.5v-3.5a1 1 0 0 0 -2 0v3.5a2.32 2.32 0 0 0 2.5 2.5h3.5a1 1 0 0 0 0-2zm13-5a1 1 0 0 0 -1 1v3.5c0 .449-.052.5-.5.5h-3.5a1 1 0 0 0 0 2h3.5a2.32 2.32 0 0 0 2.5-2.5v-3.5a1 1 0 0 0 -1-1z"
-                        />
-                      </svg>
-                    </>
+                    <svg
+                      height="20"
+                      viewBox="0 0 24 24"
+                      width="20"
+                      fill="currentColor"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        id="expand"
+                        d="m22 4.5v3.5a1 1 0 0 1 -2 0v-3.5c0-.449-.052-.5-.5-.5h-3.5a1 1 0 0 1 0-2h3.5a2.32 2.32 0 0 1 2.5 2.5zm-14-2.5h-3.5a2.32 2.32 0 0 0 -2.5 2.5v3.5a1 1 0 0 0 2 0v-3.5c0-.449.052-.5.5-.5h3.5a1 1 0 0 0 0-2zm0 18h-3.5c-.448 0-.5-.051-.5-.5v-3.5a1 1 0 0 0 -2 0v3.5a2.32 2.32 0 0 0 2.5 2.5h3.5a1 1 0 0 0 0-2zm13-5a1 1 0 0 0 -1 1v3.5c0 .449-.052.5-.5.5h-3.5a1 1 0 0 0 0 2h3.5a2.32 2.32 0 0 0 2.5-2.5v-3.5a1 1 0 0 0 -1-1z"
+                      />
+                    </svg>
                   )}
                 </button>
               </div>
