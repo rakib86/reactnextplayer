@@ -1,6 +1,6 @@
 {
   "name": "reactnextplayer",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "type": "module",
   "description": "A good looking customizable React video player component",
   "main": "dist/index.js",
