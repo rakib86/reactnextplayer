@@ -80,6 +80,7 @@ export default function App() {
 | `height`      | `string \| number` | `"auto"`     | Height of player                            |
 | `className`   | `string`           | `""`         | Custom CSS class                            |
 | `color`       | `string`           | `"#ff0000"`  | Primary color (progress, volume, etc.)      |
+| `skipSeconds` | `number`  | `10` | Custom forward and backward skip value (in seconds)
 
 ---
 
