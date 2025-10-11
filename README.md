@@ -1,5 +1,5 @@
 
-# React Video Player 🎬
+# ReactNextPlayer 🎬
 
 A modern, customizable React video player component with advanced controls, keyboard shortcuts, fullscreen, and picture-in-picture support.
 
