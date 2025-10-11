@@ -1,0 +1,25 @@
+# Node modules
+node_modules/
+demo/node_modules/
+
+# Build outputs
+dist/
+build/
+
+# Next.js demo build
+/demo/.next/
+/demo/out/
+
+# Local env and logs
+.env
+.env.local
+npm-debug.log*
+yarn-debug.log*
+
+# Editor / OS
+.DS_Store
+.vscode/
+
+# TypeScript incremental build file
+*.tsbuildinfo
+``

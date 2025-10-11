@@ -4,7 +4,7 @@
 A modern, customizable React video player component with advanced controls, keyboard shortcuts, fullscreen, and picture-in-picture support.
 
 ![ReactNextPlayer Demo](./assets/player.png)
-![ReactNextPlayer Demo](./assets/player2.png)
+![ReactNextPlayer Demo New](./assets/player2.png)
 
 ---
 
@@ -42,7 +42,7 @@ yarn add reactnextplayer
 ```tsx
 "use client";
 import React from "react";
-import ReactNextPlayer from "reactnextplayer";
+import {ReactNextPlayer} from "reactnextplayer";
 
 export default function App() {
   return (
