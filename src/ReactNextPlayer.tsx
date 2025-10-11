@@ -13,6 +13,7 @@ export interface ReactNextPlayerProps {
   height?: string | number;
   className?: string;
   color?: string;
+  skipSeconds?: number;
   onPlay?: () => void;
   onPause?: () => void;
   onTimeUpdate?: (currentTime: number) => void;
@@ -31,6 +32,7 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
   height = "auto",
   className = "",
   color = "#ff0000",
+  skipSeconds = 10,
   onPlay,
   onPause,
   onTimeUpdate,
@@ -115,19 +117,19 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
     if (videoRef.current) {
       videoRef.current.currentTime = Math.max(
         0,
-        videoRef.current.currentTime - 10
+        videoRef.current.currentTime - skipSeconds
       );
     }
-  }, []);
+  }, [skipSeconds]);
 
   const handleSkipForward = useCallback(() => {
     if (videoRef.current) {
       videoRef.current.currentTime = Math.min(
         duration,
-        videoRef.current.currentTime + 10
+        videoRef.current.currentTime + skipSeconds
       );
     }
-  }, [duration]);
+  }, [duration, skipSeconds]);
 
   const handleTimeUpdate = useCallback(() => {
     if (videoRef.current) {
@@ -730,9 +732,8 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
 
       <div
         ref={playerRef}
-        className={`react-vid-player ${className} ${
-          isFullscreen ? "fullscreen" : ""
-        }`}
+        className={`react-vid-player ${className} ${isFullscreen ? "fullscreen" : ""
+          }`}
         style={
           {
             width,
@@ -765,9 +766,8 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
 
         {/* Center play/pause overlay - only show when paused or on hover */}
         <div
-          className={`center-overlay ${
-            !isPlaying || (showControls && isHovering) ? "visible" : ""
-          }`}
+          className={`center-overlay ${!isPlaying || (showControls && isHovering) ? "visible" : ""
+            }`}
           onClick={handlePlayPause}
         >
           {isPlaying ? (
@@ -798,9 +798,8 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
 
         {controls && (
           <div
-            className={`video-controls ${
-              showControls || !isPlaying ? "visible" : "hidden"
-            }`}
+            className={`video-controls ${showControls || !isPlaying ? "visible" : "hidden"
+              }`}
           >
             <div className="progress-container" onClick={handleProgressClick}>
               <div className="progress-bar" ref={progressBarRef}>
