@@ -13,6 +13,7 @@ export interface ReactNextPlayerProps {
   height?: string | number;
   className?: string;
   color?: string;
+  ambientGlow?: boolean;
   onPlay?: () => void;
   onPause?: () => void;
   onTimeUpdate?: (currentTime: number) => void;
@@ -31,6 +32,7 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
   height = "auto",
   className = "",
   color = "#ff0000",
+  ambientGlow = false,
   onPlay,
   onPause,
   onTimeUpdate,
@@ -41,6 +43,8 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
   const playerRef = useRef<HTMLDivElement>(null);
   const hideControlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastClickTimeRef = useRef<number>(0);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const glowCanvasRef = useRef<HTMLCanvasElement>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -365,6 +369,121 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
     }
   }, [isVideoLoaded, volume, isMuted]);
 
+  // Ambient glow effect
+  useEffect(() => {
+    if (!ambientGlow) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const glowCanvas = glowCanvasRef.current;
+    if (!video || !canvas || !glowCanvas) return;
+
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const glowCtx = glowCanvas.getContext("2d");
+    if (!ctx || !glowCtx) return;
+
+    let animationId: number;
+
+    const extractAndRenderGlow = () => {
+      if (video.paused || video.ended) return;
+
+      // Sample size for color extraction
+      const sampleSize = 32;
+      canvas.width = sampleSize;
+      canvas.height = sampleSize;
+
+      // Get video dimensions
+      const videoRect = video.getBoundingClientRect();
+      glowCanvas.width = videoRect.width;
+      glowCanvas.height = videoRect.height;
+
+      try {
+        // Draw downscaled video to sample canvas
+        ctx.drawImage(video, 0, 0, sampleSize, sampleSize);
+
+        // Clear glow canvas
+        glowCtx.clearRect(0, 0, glowCanvas.width, glowCanvas.height);
+
+        // Sample colors from grid
+        const gridSize = 8; // 8x8 grid
+        const cellWidth = sampleSize / gridSize;
+        const cellHeight = sampleSize / gridSize;
+
+        for (let row = 0; row < gridSize; row++) {
+          for (let col = 0; col < gridSize; col++) {
+            const x = Math.floor(col * cellWidth + cellWidth / 2);
+            const y = Math.floor(row * cellHeight + cellHeight / 2);
+
+            const imageData = ctx.getImageData(x, y, 1, 1);
+            const [r, g, b] = imageData.data;
+
+            // Boost saturation
+            const boost = 1.8;
+            const rBoosted = Math.min(255, Math.floor(r * boost));
+            const gBoosted = Math.min(255, Math.floor(g * boost));
+            const bBoosted = Math.min(255, Math.floor(b * boost));
+
+            // Calculate position on glow canvas
+            const glowX = (col / gridSize) * glowCanvas.width;
+            const glowY = (row / gridSize) * glowCanvas.height;
+            const glowSize = Math.max(glowCanvas.width, glowCanvas.height) / 4;
+
+            // Create radial gradient for each region
+            const gradient = glowCtx.createRadialGradient(
+              glowX,
+              glowY,
+              0,
+              glowX,
+              glowY,
+              glowSize
+            );
+
+            gradient.addColorStop(
+              0,
+              `rgba(${rBoosted}, ${gBoosted}, ${bBoosted}, 0.6)`
+            );
+            gradient.addColorStop(
+              0.5,
+              `rgba(${rBoosted}, ${gBoosted}, ${bBoosted}, 0.2)`
+            );
+            gradient.addColorStop(
+              1,
+              `rgba(${rBoosted}, ${gBoosted}, ${bBoosted}, 0)`
+            );
+
+            glowCtx.fillStyle = gradient;
+            glowCtx.fillRect(0, 0, glowCanvas.width, glowCanvas.height);
+          }
+        }
+
+        // Apply blur for smoother glow
+        glowCtx.filter = "blur(40px)";
+        glowCtx.drawImage(glowCanvas, 0, 0);
+        glowCtx.filter = "none";
+      } catch (e) {
+        console.log("Canvas error:", e);
+      }
+
+      animationId = requestAnimationFrame(extractAndRenderGlow);
+    };
+
+    const handlePlay = () => {
+      extractAndRenderGlow();
+    };
+
+    video.addEventListener("play", handlePlay);
+    if (!video.paused) {
+      extractAndRenderGlow();
+    }
+
+    return () => {
+      video.removeEventListener("play", handlePlay);
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
+    };
+  }, [ambientGlow]);
+
   const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
@@ -376,7 +495,7 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
             width: 100%;
             background: #000;
             border-radius: 8px;
-            overflow: hidden;
+            overflow: visible;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
             user-select: none;
@@ -389,6 +508,24 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
             cursor: pointer;
             background: #000;
             outline: none;
+            position: relative;
+            z-index: 2;
+            border-radius: 8px;
+          }
+
+          .glow-canvas {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(1);
+            pointer-events: none;
+            z-index: 1;
+            filter: blur(80px);
+            opacity: 0.7;
+          }
+
+          .hidden-canvas {
+            display: none;
           }
 
           .video-controls {
@@ -401,8 +538,9 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
                 rgba(0, 0, 0, 0.6) 50%,
                 transparent 100%);
             padding: 24px 20px 12px;
+            border-radius: 8px;
             transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
-            z-index: 10;
+            z-index: 100;
           }
 
           .video-controls.hidden {
@@ -602,14 +740,20 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
             z-index: 9999;
             border-radius: 0;
             box-shadow: none;
+            overflow: hidden;
           }
 
           .react-vid-player.fullscreen video {
             object-fit: contain;
+            border-radius: 0;
           }
 
           .react-vid-player.fullscreen .video-controls {
             padding: 32px 24px 16px;
+          }
+
+          .react-vid-player.fullscreen .glow-canvas {
+            display: none;
           }
 
           /* Center overlay */
@@ -622,7 +766,7 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
             opacity: 0;
             cursor: pointer;
             transition: opacity 0.3s ease;
-            z-index: 5;
+            z-index: 50;
             pointer-events: none;
           }
 
@@ -746,6 +890,9 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
         onMouseMove={handleMouseMove}
         tabIndex={0}
       >
+        {/* Glow layer behind video */}
+        {ambientGlow && <canvas ref={glowCanvasRef} className="glow-canvas" />}
+
         <video
           ref={videoRef}
           src={src}
@@ -761,7 +908,11 @@ const ReactNextPlayer: React.FC<ReactNextPlayerProps> = ({
           onEnded={handleEnded}
           onClick={handleVideoClick}
           playsInline
+          crossOrigin="anonymous"
         />
+
+        {/* Hidden canvas for color sampling */}
+        {ambientGlow && <canvas ref={canvasRef} className="hidden-canvas" />}
 
         {/* Center play/pause overlay - only show when paused or on hover */}
         <div

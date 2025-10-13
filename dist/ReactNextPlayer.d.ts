@@ -11,6 +11,7 @@ export interface ReactNextPlayerProps {
     height?: string | number;
     className?: string;
     color?: string;
+    ambientGlow?: boolean;
     onPlay?: () => void;
     onPause?: () => void;
     onTimeUpdate?: (currentTime: number) => void;
