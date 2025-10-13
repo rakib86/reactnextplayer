@@ -1,7 +1,7 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ReactNextPlayer } from "reactnextplayer";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, Star } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -18,6 +18,7 @@ export default function Page() {
   const [copied, setCopied] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
   const [propsCopied, setPropsCopied] = useState(false);
+  const [starCount, setStarCount] = useState<number | null>(null);
   const [props, setProps] = useState({
     src: "https://rakib.sgp1.cdn.digitaloceanspaces.com/Lovable%202.0%20is%20here.%20Multiplayer%20vibe%20coding.%20Smarter%20&%20more%20secure..mp4",
     controls: true,
@@ -29,6 +30,14 @@ export default function Page() {
     color: "#ff0000",
     ambientGlow: true,
   });
+
+  useEffect(() => {
+    // Fetch GitHub stars
+    fetch("https://api.github.com/repos/rakib86/reactnextplayer")
+      .then((res) => res.json())
+      .then((data) => setStarCount(data.stargazers_count))
+      .catch(() => setStarCount(31)); // Fallback to known count
+  }, []);
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText("npm i reactnextplayer");
@@ -110,6 +119,24 @@ export default function App() {
                 <Copy className="h-4 w-4" />
               )}
             </Button>
+          </div>
+
+          {/* GitHub Star */}
+          <div className="flex items-center justify-center gap-3">
+            <a
+              href="https://github.com/rakib86/reactnextplayer"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-gray-900 hover:bg-gray-800 border border-gray-800 rounded-lg px-4 py-2 transition-colors"
+            >
+              <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+              <span className="text-sm font-medium">Star on GitHub</span>
+              {starCount !== null && (
+                <span className="bg-gray-800 px-2 py-0.5 rounded text-xs font-mono">
+                  {starCount}
+                </span>
+              )}
+            </a>
           </div>
         </div>
 

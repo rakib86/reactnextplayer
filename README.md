@@ -8,6 +8,10 @@ A modern, customizable React video player component with advanced controls, keyb
 
 ---
 
+## Demo
+
+[ReactNextPlayer Demo](https://reactnextplayer.vercel.app)
+
 ## ✨ Features
 
 * 🎛️ Customizable player UI with color theming
