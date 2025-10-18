@@ -20,7 +20,7 @@ export default function Page() {
   const [propsCopied, setPropsCopied] = useState(false);
   const [starCount, setStarCount] = useState<number | null>(null);
   const [props, setProps] = useState({
-    src: "https://rakib.sgp1.cdn.digitaloceanspaces.com/Lovable%202.0%20is%20here.%20Multiplayer%20vibe%20coding.%20Smarter%20&%20more%20secure..mp4",
+    src: "/demo.mp4",
     controls: true,
     autoplay: false,
     muted: false,

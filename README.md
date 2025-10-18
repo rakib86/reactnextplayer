@@ -15,6 +15,7 @@ A modern, customizable React video player component with advanced controls, keyb
 ## ✨ Features
 
 * 🎛️ Customizable player UI with color theming
+* 🔄 Ambient glow effect like YouTube Videos (Dynamic Glow around the video while playing)
 * ⏯️ Play / Pause with overlay and controls
 * ⏪ Skip backward & ⏩ skip forward (10s)
 * 🔊 Volume control with mute/unmute
@@ -57,6 +58,7 @@ export default function App() {
         autoplay={false}
         controls
         color="#ff4757"
+        ambientGlow={true}
         onPlay={() => console.log("Video started")}
         onPause={() => console.log("Video paused")}
         onEnded={() => console.log("Video ended")}
@@ -84,7 +86,8 @@ export default function App() {
 | `height`      | `string \| number` | `"auto"`     | Height of player                            |
 | `className`   | `string`           | `""`         | Custom CSS class                            |
 | `color`       | `string`           | `"#ff0000"`  | Primary color (progress, volume, etc.)      |
-
+| `ambientGlow` | `boolean`          | `false`      | Enable ambient glow effect                  |
+    
 ---
 
 ## 🎯 Events (Callbacks)
